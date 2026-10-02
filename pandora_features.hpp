@@ -120,7 +120,8 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Connection"};
  static bool expanded=true;static float expansion=1;
  expansion+=(float(expanded)-expansion)*(1-std::exp(-ImGui::GetIO().DeltaTime*14));
- ImGui::BeginChild("sidebar",{50+105*expansion,-28},ImGuiChildFlags_Borders);
+ ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{0,10});
+ ImGui::BeginChild("sidebar",{50+105*expansion,-28},ImGuiChildFlags_Borders);ImGui::PopStyleVar();
  if(ImGui::SmallButton(expanded?"<":" >"))expanded=!expanded;
  ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","A"};
  for(int i=0;i<6;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
