@@ -8,6 +8,7 @@ FetchContent_Declare(imgui GIT_REPOSITORY https://github.com/ocornut/imgui.git G
 FetchContent_MakeAvailable(imgui)
 add_executable(pandora_lite WIN32 pandora_app.cpp
  ${imgui_SOURCE_DIR}/imgui.cpp ${imgui_SOURCE_DIR}/imgui_draw.cpp
+ ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
  ${imgui_SOURCE_DIR}/imgui_tables.cpp ${imgui_SOURCE_DIR}/imgui_widgets.cpp
  ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp ${imgui_SOURCE_DIR}/backends/imgui_impl_dx11.cpp)
 target_include_directories(pandora_lite PRIVATE ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
@@ -17,7 +18,7 @@ if(MSVC)
  target_compile_options(pandora_lite PRIVATE /W4 /EHsc /utf-8)
  set_property(TARGET pandora_lite PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
-target_link_libraries(pandora_lite PRIVATE d3d11 dxgi dwmapi user32 gdi32 winhttp bcrypt shell32)
+target_link_libraries(pandora_lite PRIVATE d3d11 dxgi dwmapi user32 gdi32 winhttp bcrypt shell32 comdlg32)
 
 # Portable state-transition tests use fake character memory; no Roblox needed.
 add_executable(movement_tests tests_movement.cpp)
@@ -32,3 +33,12 @@ add_custom_command(TARGET movement_tests POST_BUILD COMMAND $<TARGET_FILE:moveme
 if(DEFINED ENV{GITHUB_RUN_NUMBER})
  target_compile_definitions(pandora_lite PRIVATE PANDORA_BUILD_NUMBER=$ENV{GITHUB_RUN_NUMBER})
 endif()
+
+add_executable(script_files_tests tests_script_files.cpp)
+target_compile_features(script_files_tests PRIVATE cxx_std_20)
+if(MSVC)
+ target_compile_options(script_files_tests PRIVATE /W4 /EHsc /utf-8)
+ set_property(TARGET script_files_tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+add_custom_command(TARGET script_files_tests POST_BUILD COMMAND $<TARGET_FILE:script_files_tests>
+ COMMENT "Checking script file validation and preservation" VERBATIM)

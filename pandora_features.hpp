@@ -141,14 +141,14 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  ImGui::SetNextWindowSizeConstraints({660,480},{1100,850});
  ImGui::Begin("Pandora / external",nullptr,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
  if(menu1011::title)ImGui::PushFont(menu1011::title);ImGui::TextColored(a,"PANDORA");if(menu1011::title)ImGui::PopFont();ImGui::SameLine();ImGui::TextDisabled("EXTERNAL / CUSTOM EDITION");ImGui::SameLine(ImGui::GetWindowWidth()-175);ImGui::TextDisabled("%.0f fps",fps);
- ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Movement","Connection","Players","Updates"};
+ ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Movement","Connection","Players","Updates","Scripts"};
  static bool expanded=true;static float expansion=1;
  expansion+=(float(expanded)-expansion)*(1-std::exp(-ImGui::GetIO().DeltaTime*14));
  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{0,10});
  ImGui::BeginChild("sidebar",{50+105*expansion,-28},ImGuiChildFlags_Borders);ImGui::PopStyleVar();
  if(ImGui::SmallButton(expanded?"<":" >"))expanded=!expanded;
- ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","C","A","B","E"};
- for(int i=0;i<9;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
+ ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","C","A","B","E","E"};
+ for(int i=0;i<10;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
  ImGui::Spacing();if(expansion>.75f){ImGui::TextColored(r.status=="Connected"?a:ImVec4{1,.7f,.3f,1},"%s",r.status=="Connected"?"CONNECTED":"WAITING");ImGui::TextDisabled("%zu players",r.samples().size());}
  ImGui::EndChild();ImGui::SameLine();ImGui::BeginChild("content",{0,-28},ImGuiChildFlags_Borders);
  ImGui::TextColored(a,"%s",tabs[page]);ImGui::Separator();
@@ -223,5 +223,6 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
   if(!updater::state.staged.empty()&&ImGui::Button("Install update and restart")){updater::install=true;active=false;}
   ImGui::TextWrapped("Downloads published Pandora releases over HTTPS and verifies SHA-256. Installation waits for Pandora to exit and keeps the previous executable as .bak. Updating Pandora does not update Roblox offsets automatically.");
  }
+ if(page==9)scripts::editor.draw(r,s.directory);
  ImGui::EndChild();ImGui::Separator();ImGui::TextDisabled("INSERT / menu    END / exit");ImGui::SameLine();if(ImGui::SmallButton("Quit"))active=false;ImGui::End();
 }

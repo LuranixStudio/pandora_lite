@@ -127,6 +127,17 @@ public:
   }
   samples_=std::move(next);status="Connected";
  }
+ std::string execution_diagnostics() const {
+  if(!handle_)return "No compatible client attached";
+  if(!pointer(dm_))return "Client version matched; loaded DataModel unavailable";
+  uintptr_t core=0;for(auto child:children(dm_))if(class_name(child)=="CoreGui"){core=child;break;}
+  if(!pointer(core))return "Client version matched; CoreGui unavailable";
+  struct Node{uintptr_t address;unsigned depth;};std::vector<Node> pending{{core,0}};size_t visited=0,modules=0;
+  while(!pending.empty()&&visited<1024){auto node=pending.back();pending.pop_back();++visited;if(class_name(node.address)=="ModuleScript")++modules;
+   if(node.depth<12)for(auto child:children(node.address)){if(pending.size()>=1024)break;pending.push_back({child,node.depth+1});}
+  }
+  return "Read-only CoreGui scan: "+std::to_string(modules)+" module scripts / "+std::to_string(visited)+" nodes (1024 node / depth 12 limit). Execution backend not connected.";
+ }
  HWND window() const {
   struct Search{DWORD pid;HWND result;};Search s{pid_,nullptr};
   EnumWindows([](HWND h,LPARAM v)->BOOL{auto& s=*reinterpret_cast<Search*>(v);DWORD pid=0;GetWindowThreadProcessId(h,&pid);if(pid==s.pid&&IsWindowVisible(h)&&GetWindow(h,GW_OWNER)==nullptr){s.result=h;return FALSE;}return TRUE;},reinterpret_cast<LPARAM>(&s));
