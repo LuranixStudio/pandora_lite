@@ -17,6 +17,7 @@ static UINT pending_w{},pending_h{};
 static bool menu=true, running=true;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND,UINT,WPARAM,LPARAM);
 #include "menu_1011.hpp"
+#include "pandora_update.hpp"
 #include "pandora_features.hpp"
 #include "pandora_jump_input.hpp"
 #include "pandora_movement.hpp"
@@ -62,6 +63,7 @@ static void style(){
  s.Colors[ImGuiCol_TabSelected]={0.28f,0.23f,0.47f,1};
 }
 int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR,int){
+ int argc=0;auto argv=CommandLineToArgvW(GetCommandLineW(),&argc);if(argv&&argc>1&&std::wstring(argv[1])==L"--apply-update"){int result=updater::apply(argc,argv);LocalFree(argv);return result;}if(argv)LocalFree(argv);
  SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
  WNDCLASSEXW wc{sizeof wc};wc.lpfnWndProc=window_proc;wc.hInstance=instance;wc.lpszClassName=L"PandoraLiteWindow";wc.hCursor=LoadCursor(nullptr,IDC_ARROW);
  if(!RegisterClassExW(&wc))return 1;
@@ -72,7 +74,9 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR,int){
  ShowWindow(h,SW_SHOW);UpdateWindow(h);IMGUI_CHECKVERSION();ImGui::CreateContext();auto& io=ImGui::GetIO();io.IniFilename=nullptr;io.ConfigFlags|=ImGuiConfigFlags_NavEnableKeyboard;
  menu1011::fonts();style();if(!ImGui_ImplWin32_Init(h)||!ImGui_ImplDX11_Init(device,context)){ImGui::DestroyContext();cleanup();DestroyWindow(h);UnregisterClassW(wc.lpszClassName,instance);return 1;}
  jump_input::initialize();Settings settings;settings.load();settings.aim=settings.speed=settings.jump_boost=settings.auto_jump=settings.fly=false;Reader reader;Movement movement;RECT previous{};bool old_menu=!menu;bool old_focus=true;
+ if(settings.update_check)updater::check();
  while(running){
+  updater::poll();
   MSG msg{};while(PeekMessageW(&msg,nullptr,0,0,PM_REMOVE)){TranslateMessage(&msg);DispatchMessageW(&msg);if(msg.message==WM_QUIT)running=false;}if(!running)break;
   if(GetAsyncKeyState(VK_INSERT)&1)menu=!menu;
   if(GetAsyncKeyState(VK_END)&1)break;
@@ -92,5 +96,5 @@ int WINAPI WinMain(HINSTANCE instance,HINSTANCE,LPSTR,int){
   ImGui::Render();const float clear[4]={0,0,0,0};context->OMSetRenderTargets(1,&target,nullptr);context->ClearRenderTargetView(target,clear);ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
   HRESULT hr=swapchain->Present(1,0);if(hr==DXGI_ERROR_DEVICE_REMOVED||hr==DXGI_ERROR_DEVICE_RESET)break;if(hr==DXGI_STATUS_OCCLUDED)Sleep(30);
  }
- movement.stop(reader);jump_input::shutdown();settings.save();ImGui_ImplDX11_Shutdown();ImGui_ImplWin32_Shutdown();ImGui::DestroyContext();cleanup();DestroyWindow(h);UnregisterClassW(wc.lpszClassName,instance);return 0;
+ movement.stop(reader);jump_input::shutdown();settings.save();ImGui_ImplDX11_Shutdown();ImGui_ImplWin32_Shutdown();ImGui::DestroyContext();cleanup();DestroyWindow(h);UnregisterClassW(wc.lpszClassName,instance);if(updater::install&&!updater::launch_install())MessageBoxW(nullptr,L"Update could not start. Your current executable is unchanged.",L"Pandora update",MB_ICONERROR);return 0;
 }

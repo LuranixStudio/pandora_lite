@@ -7,6 +7,8 @@ inline std::string movement_status="Movement disabled";
 struct Settings {
  bool enabled=true,boxes=true,names=true,health=true,teammates=false;
  bool filled=false,tracers=false,distances=false,radar=false,crosshair=false,watermark=true;
+ bool update_check=true,offscreen=false,head_marker=false,health_text=false,distance_fade=false,radar_rotate=false;
+ int cross_style=0;float arrow_radius=220,radar_dot=3,cross_gap=2;
  bool speed=false,jump_boost=false,auto_jump=false,fly=false;
  int hop_interval=120,hop_duration=40;
  float walk_speed=32,jump_power=75,jump_height=12,fly_speed=40;
@@ -33,6 +35,8 @@ struct Settings {
 #define NUM_FIELD(v,l,h) number(L## #v,v,l,h)
   BOOL_FIELD(enabled);BOOL_FIELD(boxes);BOOL_FIELD(names);BOOL_FIELD(health);BOOL_FIELD(teammates);
   BOOL_FIELD(filled);BOOL_FIELD(tracers);BOOL_FIELD(distances);BOOL_FIELD(radar);BOOL_FIELD(crosshair);BOOL_FIELD(watermark);
+  BOOL_FIELD(update_check);BOOL_FIELD(offscreen);BOOL_FIELD(head_marker);BOOL_FIELD(health_text);BOOL_FIELD(distance_fade);BOOL_FIELD(radar_rotate);
+  NUM_FIELD(cross_style,0,2);NUM_FIELD(arrow_radius,60,500);NUM_FIELD(radar_dot,2,8);NUM_FIELD(cross_gap,0,15);
   BOOL_FIELD(speed);BOOL_FIELD(jump_boost);BOOL_FIELD(auto_jump);BOOL_FIELD(fly);
   NUM_FIELD(hop_interval,60,500);NUM_FIELD(hop_duration,15,120);
   NUM_FIELD(walk_speed,1,150);NUM_FIELD(jump_power,1,150);NUM_FIELD(jump_height,1,50);NUM_FIELD(fly_speed,1,150);
@@ -63,7 +67,11 @@ inline void draw_features(Reader& r,const Settings& s,int width,int height,bool 
  static uintptr_t lock=0;static float residual_x=0,residual_y=0;
  auto* draw=ImGui::GetBackgroundDrawList();ImVec2 center{width*.5f,height*.5f};
  if(s.watermark){draw->AddRectFilled({16,16},{258,44},IM_COL32(18,21,19,220),5);draw->AddRectFilled({16,16},{19,44},rgba(s.accent),2);char text[80];snprintf(text,sizeof text,"PANDORA  |  %.0f fps  |  %zu players",ImGui::GetIO().Framerate,r.samples().size());label(draw,{27,23},rgba(s.text_color),text);}
- if(s.crosshair){auto c=rgba(s.accent);float z=s.cross_size;draw->AddLine({center.x-z,center.y},{center.x+z,center.y},IM_COL32(0,0,0,220),3);draw->AddLine({center.x,center.y-z},{center.x,center.y+z},IM_COL32(0,0,0,220),3);draw->AddLine({center.x-z,center.y},{center.x+z,center.y},c);draw->AddLine({center.x,center.y-z},{center.x,center.y+z},c);}
+ if(s.crosshair){auto c=rgba(s.accent);float z=s.cross_size,g=s.cross_gap;
+  if(s.cross_style==1)draw->AddCircle(center,z,c,32,1.5f);
+  else if(s.cross_style==2)draw->AddCircleFilled(center,std::max(1.f,z*.25f),c);
+  else{draw->AddLine({center.x-z-g,center.y},{center.x-g,center.y},c,1.5f);draw->AddLine({center.x+g,center.y},{center.x+z+g,center.y},c,1.5f);draw->AddLine({center.x,center.y-z-g},{center.x,center.y-g},c,1.5f);draw->AddLine({center.x,center.y+g},{center.x,center.y+z+g},c,1.5f);}
+ }
  if(s.aim&&s.fov_circle)draw->AddCircle(center,s.fov,rgba(s.accent),96,1);
  bool held=s.aim&&input_allowed&&(GetAsyncKeyState(s.aim_key)&0x8000);
  if(!held){lock=0;residual_x=residual_y=0;}
@@ -74,7 +82,7 @@ inline void draw_features(Reader& r,const Settings& s,int width,int height,bool 
  float radar_left=std::clamp((width-s.radar_size)*s.radar_x,0.f,std::max(0.f,width-s.radar_size));
  float radar_top=std::clamp((height-s.radar_size)*s.radar_y,0.f,std::max(0.f,height-s.radar_size));
  ImVec2 rc{radar_left+s.radar_size*.5f,radar_top+s.radar_size*.5f};float rr=s.radar_size*.5f-10;
- if(s.radar){draw->AddRectFilled({radar_left,radar_top},{radar_left+s.radar_size,radar_top+s.radar_size},IM_COL32(16,20,18,210),8);draw->AddCircle(rc,rr,rgba(s.accent),64);draw->AddCircle(rc,rr*.5f,IM_COL32(130,150,130,65),48);draw->AddLine({rc.x-rr,rc.y},{rc.x+rr,rc.y},IM_COL32(130,150,130,65));draw->AddLine({rc.x,rc.y-rr},{rc.x,rc.y+rr},IM_COL32(130,150,130,65));draw->AddCircleFilled(rc,3,IM_COL32(255,255,255,255));label(draw,{radar_left+8,radar_top+6},rgba(s.text_color),local_valid?"RADAR / north up":"RADAR / waiting for character");}
+ if(s.radar){draw->AddRectFilled({radar_left,radar_top},{radar_left+s.radar_size,radar_top+s.radar_size},IM_COL32(16,20,18,210),8);draw->AddCircle(rc,rr,rgba(s.accent),64);draw->AddCircle(rc,rr*.5f,IM_COL32(130,150,130,65),48);draw->AddLine({rc.x-rr,rc.y},{rc.x+rr,rc.y},IM_COL32(130,150,130,65));draw->AddLine({rc.x,rc.y-rr},{rc.x,rc.y+rr},IM_COL32(130,150,130,65));draw->AddCircleFilled(rc,3,IM_COL32(255,255,255,255));label(draw,{radar_left+8,radar_top+6},rgba(s.text_color),local_valid?(s.radar_rotate?"RADAR / camera up":"RADAR / north up"):"RADAR / waiting for character");}
  TargetPoint best{},locked{};best.score=s.fov*s.fov;
  for(const auto& p:r.samples()){
   if(!s.teammates&&team&&p.team==team)continue;
@@ -84,17 +92,26 @@ inline void draw_features(Reader& r,const Settings& s,int width,int height,bool 
   Vec3 head{},root{};if(!r.try_position(p.head,head)||!r.try_position(p.root,root))continue;
   if(!std::isfinite(root.x)||!std::isfinite(root.y)||!std::isfinite(root.z)||!std::isfinite(head.x)||!std::isfinite(head.y)||!std::isfinite(head.z))continue;
   float distance=0;if(local_valid){float x=root.x-local.x,y=root.y-local.y,z=root.z-local.z;distance=std::sqrt(x*x+y*y+z*z);if(distance>s.max_distance)continue;}
-  if(s.radar&&local_valid){float x=(root.x-local.x)/s.radar_range*rr,y=(root.z-local.z)/s.radar_range*rr;float len=std::sqrt(x*x+y*y);if(len>rr){x*=rr/len;y*=rr/len;}draw->AddCircleFilled({rc.x+x,rc.y+y},3,rgba(s.color));}
+  if(s.radar&&local_valid){float x=(root.x-local.x)/s.radar_range*rr,y=(root.z-local.z)/s.radar_range*rr;if(s.radar_rotate){float rx=m[0],rz=m[2],len=std::sqrt(rx*rx+rz*rz);if(len>.001f){rx/=len;rz/=len;float side=x*rx+y*rz,front=x*rz-y*rx;x=side;y=-front;}}float len=std::sqrt(x*x+y*y);if(len>rr){x*=rr/len;y*=rr/len;}draw->AddCircleFilled({rc.x+x,rc.y+y},s.radar_dot,rgba(s.color));}
   if(held){float x,y;if(screen(s.aim_part==0?head:root,x,y)&&x>=0&&x<=width&&y>=0&&y<=height){float dx=x-center.x,dy=y-center.y,score=dx*dx+dy*dy;if(score<=s.fov*s.fov){TargetPoint t{p.address,x,y,score};if(score<best.score)best=t;if(p.address==lock)locked=t;}}}
   if(!s.enabled)continue;
+  float hx=0,hy=0;bool head_visible=screen(head,hx,hy);
+  if(s.offscreen){float px=0,py=0;bool visible=screen(root,px,py)&&px>=0&&px<=width&&py>=0&&py<=height;
+   if(!visible){float dx=m[0]*root.x+m[1]*root.y+m[2]*root.z+m[3],dy=-(m[4]*root.x+m[5]*root.y+m[6]*root.z+m[7]);float length=std::sqrt(dx*dx+dy*dy);
+    if(length>.001f){dx/=length;dy/=length;float radius=std::min(s.arrow_radius,std::min(width,height)*.45f);ImVec2 tip{center.x+dx*radius,center.y+dy*radius};draw->AddTriangleFilled(tip,{tip.x-dx*14-dy*6,tip.y-dy*14+dx*6},{tip.x-dx*14+dy*6,tip.y-dy*14-dx*6},rgba(s.color));}
+   }
+  }
+  float faded[4];std::copy(s.color,s.color+4,faded);if(s.distance_fade&&local_valid)faded[3]*=std::clamp(1-distance/s.max_distance,.15f,1.f);auto esp_color=rgba(faded);
+  if(s.head_marker&&head_visible)draw->AddCircle({hx,hy},4,esp_color,16,s.thickness);
   head.y+=.8f;root.y-=3;float tx,ty,bx,by;if(!screen(head,tx,ty)||!screen(root,bx,by))continue;
   float h=by-ty;if(h<4||h>height*2.f)continue;float cx=(tx+bx)*.5f,half=h*.25f;ImVec2 a{cx-half,ty},b{cx+half,by};
   if(b.x<0||a.x>width||b.y<0||a.y>height)continue;
   if(s.filled)draw->AddRectFilled(a,b,rgba(s.fill_color),s.box_style==2?5.f:0.f);
-  if(s.boxes){player_box(draw,a,b,IM_COL32(0,0,0,230),s.thickness+2,s.box_style);player_box(draw,a,b,rgba(s.color),s.thickness,s.box_style);}
+  if(s.boxes){player_box(draw,a,b,IM_COL32(0,0,0,230),s.thickness+2,s.box_style);player_box(draw,a,b,esp_color,s.thickness,s.box_style);}
   if(s.names){auto size=ImGui::CalcTextSize(p.name.c_str());label(draw,{cx-size.x*.5f,ty-size.y-5},rgba(s.text_color),p.name.c_str());}
   if(s.distances&&local_valid){char text[48];snprintf(text,sizeof text,"%.0f studs",distance);auto size=ImGui::CalcTextSize(text);label(draw,{cx-size.x*.5f,by+4},rgba(s.text_color),text);}
-  if(s.tracers){float y=s.tracer_origin==0?0.f:s.tracer_origin==1?center.y:float(height);draw->AddLine({center.x,y},{cx,by},rgba(s.color),s.thickness);}
+  if(s.tracers){float y=s.tracer_origin==0?0.f:s.tracer_origin==1?center.y:float(height);draw->AddLine({center.x,y},{cx,by},esp_color,s.thickness);}
+  if(s.health_text&&p.humanoid){char text[32];snprintf(text,sizeof text,"%.0f HP",hp);label(draw,{b.x+5,a.y},rgba(s.text_color),text);}
   if(s.health&&p.humanoid&&std::isfinite(max)&&max>0){float ratio=std::clamp(hp/max,0.f,1.f);draw->AddRectFilled({a.x-7,a.y-1},{a.x-3,b.y+1},IM_COL32(10,10,15,230));draw->AddRectFilled({a.x-6,b.y-h*ratio},{a.x-4,b.y},IM_COL32(int(255*(1-ratio)),int(220*ratio),90,255));}
  }
  if(held){auto chosen=s.sticky&&locked.id?locked:best;if(!chosen.id){lock=0;residual_x=residual_y=0;return;}
@@ -124,14 +141,14 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  ImGui::SetNextWindowSizeConstraints({660,480},{1100,850});
  ImGui::Begin("Pandora / external",nullptr,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
  if(menu1011::title)ImGui::PushFont(menu1011::title);ImGui::TextColored(a,"PANDORA");if(menu1011::title)ImGui::PopFont();ImGui::SameLine();ImGui::TextDisabled("EXTERNAL / CUSTOM EDITION");ImGui::SameLine(ImGui::GetWindowWidth()-175);ImGui::TextDisabled("%.0f fps",fps);
- ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Movement","Connection"};
+ ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Movement","Connection","Players","Updates"};
  static bool expanded=true;static float expansion=1;
  expansion+=(float(expanded)-expansion)*(1-std::exp(-ImGui::GetIO().DeltaTime*14));
  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{0,10});
  ImGui::BeginChild("sidebar",{50+105*expansion,-28},ImGuiChildFlags_Borders);ImGui::PopStyleVar();
  if(ImGui::SmallButton(expanded?"<":" >"))expanded=!expanded;
- ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","C","A"};
- for(int i=0;i<7;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
+ ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","C","A","B","E"};
+ for(int i=0;i<9;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
  ImGui::Spacing();if(expansion>.75f){ImGui::TextColored(r.status=="Connected"?a:ImVec4{1,.7f,.3f,1},"%s",r.status=="Connected"?"CONNECTED":"WAITING");ImGui::TextDisabled("%zu players",r.samples().size());}
  ImGui::EndChild();ImGui::SameLine();ImGui::BeginChild("content",{0,-28},ImGuiChildFlags_Borders);
  ImGui::TextColored(a,"%s",tabs[page]);ImGui::Separator();
@@ -150,17 +167,21 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
   ImGui::Checkbox("Names",&s.names);ImGui::SameLine(230);ImGui::Checkbox("Health bars",&s.health);
   ImGui::Checkbox("Distances",&s.distances);ImGui::SameLine(230);ImGui::Checkbox("Tracers",&s.tracers);
   if(s.tracers)ImGui::Combo("Tracer origin",&s.tracer_origin,"Top\0Center\0Bottom\0");
+  ImGui::Checkbox("Off-screen arrows",&s.offscreen);if(s.offscreen)ImGui::SliderFloat("Arrow radius",&s.arrow_radius,60,500,"%.0f px");
+  ImGui::Checkbox("Head markers",&s.head_marker);ImGui::SameLine(230);ImGui::Checkbox("Health numbers",&s.health_text);ImGui::Checkbox("Fade distant boxes",&s.distance_fade);
   ImGui::Checkbox("Include teammates",&s.teammates);ImGui::SliderFloat("Maximum range",&s.max_distance,25,5000,"%.0f studs");ImGui::SliderFloat("Line thickness",&s.thickness,1,4,"%.1f px");
   ImGui::ColorEdit4("ESP color",s.color,ImGuiColorEditFlags_NoInputs);ImGui::ColorEdit4("Fill color",s.fill_color,ImGuiColorEditFlags_NoInputs);ImGui::ColorEdit4("Text color",s.text_color,ImGuiColorEditFlags_NoInputs);
  }
  if(page==2){
   ImGui::Checkbox("Enable radar",&s.radar);ImGui::SliderFloat("Radar size",&s.radar_size,120,300,"%.0f px");ImGui::SliderFloat("Radar range",&s.radar_range,25,1000,"%.0f studs");
   ImGui::SliderFloat("Horizontal position",&s.radar_x,0,1,"%.2f");ImGui::SliderFloat("Vertical position",&s.radar_y,0,1,"%.2f");
+  ImGui::Checkbox("Camera-relative radar",&s.radar_rotate);ImGui::SliderFloat("Player dot size",&s.radar_dot,2,8,"%.0f px");
   ImGui::TextWrapped("North-up X/Z radar centered on your character. Players beyond radar range appear at the edge. Team and maximum-range filters apply.");
  }
  if(page==3){
   if(ImGui::Combo("Theme preset",&s.theme,"Matcha green\0Lavender\0Ice blue\0Sunset\0"))palette(s);
   ImGui::ColorEdit4("Custom accent",s.accent,ImGuiColorEditFlags_NoInputs);ImGui::Checkbox("Watermark and FPS",&s.watermark);ImGui::Checkbox("Center crosshair",&s.crosshair);ImGui::SliderFloat("Crosshair size",&s.cross_size,2,20,"%.0f px");
+  ImGui::Combo("Crosshair style",&s.cross_style,"Cross\0Ring\0Dot\0");ImGui::SliderFloat("Crosshair gap",&s.cross_gap,0,15,"%.0f px");
   ImGui::Spacing();ImGui::Text("ESP preview");auto p=ImGui::GetCursorScreenPos();auto* d=ImGui::GetWindowDrawList();ImVec2 tl{p.x+75,p.y+30},br{p.x+145,p.y+170};
   if(s.filled)d->AddRectFilled(tl,br,rgba(s.fill_color));if(s.boxes)player_box(d,tl,br,rgba(s.color),s.thickness,s.box_style);if(s.names)label(d,{p.x+82,p.y+10},rgba(s.text_color),"Player");if(s.health)d->AddRectFilled({tl.x-7,tl.y+35},{tl.x-4,br.y},IM_COL32(90,220,100,255));if(s.distances)label(d,{tl.x+10,br.y+5},rgba(s.text_color),"120 studs");ImGui::Dummy({220,200});
  }
@@ -188,6 +209,19 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
   if(ImGui::Button("Reconnect"))r.close();ImGui::Spacing();
   ImGui::TextWrapped("External visuals, mouse aim assist and local movement controls. Silent aim, visibility raycasts and script execution are not implemented.");
   ImGui::TextWrapped("Michael Conors 1011 navigation and embedded fonts adapted to Dear ImGui 1.91 / DirectX 11. Original feature panels for Pandora.");
+ }
+ if(page==7){
+  static char search[96]{};ImGui::InputText("Search players",search,sizeof search);ImGui::TextDisabled("%zu tracked players",r.samples().size());
+  if(ImGui::BeginTable("player_list",3,ImGuiTableFlags_RowBg|ImGuiTableFlags_Borders|ImGuiTableFlags_ScrollY,{0,300})){
+   ImGui::TableSetupColumn("Name");ImGui::TableSetupColumn("Health");ImGui::TableSetupColumn("Team");ImGui::TableHeadersRow();
+   for(const auto& player:r.samples()){if(search[0]&&player.name.find(search)==std::string::npos)continue;ImGui::TableNextRow();ImGui::TableNextColumn();ImGui::TextUnformatted(player.name.c_str());ImGui::TableNextColumn();if(player.humanoid){float hp=r.read<float>(player.humanoid+offsets::health);if(std::isfinite(hp))ImGui::Text("%.0f",hp);else ImGui::TextDisabled("Unavailable");}else ImGui::TextDisabled("Custom rig");ImGui::TableNextColumn();ImGui::TextUnformatted(player.team&&player.team==r.local_team()?"Teammate":"Other");}ImGui::EndTable();
+  }
+ }
+ if(page==8){
+  ImGui::Text("Installed build: %d",PANDORA_BUILD_NUMBER);ImGui::Checkbox("Check for updates on startup",&s.update_check);
+  ImGui::TextWrapped("%s",updater::state.status.c_str());if(ImGui::Button("Check for updates"))updater::check();
+  if(!updater::state.staged.empty()&&ImGui::Button("Install update and restart")){updater::install=true;active=false;}
+  ImGui::TextWrapped("Downloads published Pandora releases over HTTPS and verifies SHA-256. Installation waits for Pandora to exit and keeps the previous executable as .bak. Updating Pandora does not update Roblox offsets automatically.");
  }
  ImGui::EndChild();ImGui::Separator();ImGui::TextDisabled("INSERT / menu    END / exit");ImGui::SameLine();if(ImGui::SmallButton("Quit"))active=false;ImGui::End();
 }

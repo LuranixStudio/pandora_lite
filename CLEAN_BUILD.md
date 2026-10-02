@@ -83,3 +83,9 @@ SOFTWARE.
 ```
 
 Flight reads physical movement key positions using the foreground keyboard layout (WASD on QWERTY, QZSD on AZERTY). Layout changes are picked up while running.
+
+Expanded visuals: off-screen arrows, health numbers, head markers, distance fading, camera-relative radar with dot sizing, cross/ring/dot crosshairs with gap control, and searchable player list.
+
+Updater: startup checks can be disabled in Updates. Published releases contain the executable and release.txt (build number and SHA256). HTTPS is required, certificate validation remains enabled, downloads are bounded to 32 MiB, and hash plus x64 executable type are checked before staging. Install and restart waits for the old process to exit, verifies the staged hash again, copies a .bak backup and atomically replaces the destination. Keep Pandora in a writable folder. A checksum verifies the release download's integrity; it is not a code signature. Staged files are placed in a per-process temporary folder. Roblox version guards remain mandatory; updating Pandora does not guarantee offsets for a new Roblox client.
+
+CI test_update.ps1 checks waiting for the old app, verified replacement, backup, relaunch and rejection of a tampered hash. Live network update checks and game features require user-machine validation. No executor backend is integrated and no UNC/sUNC/Myriad score is claimed.

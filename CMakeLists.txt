@@ -17,7 +17,7 @@ if(MSVC)
  target_compile_options(pandora_lite PRIVATE /W4 /EHsc /utf-8)
  set_property(TARGET pandora_lite PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
-target_link_libraries(pandora_lite PRIVATE d3d11 dxgi dwmapi user32 gdi32)
+target_link_libraries(pandora_lite PRIVATE d3d11 dxgi dwmapi user32 gdi32 winhttp bcrypt shell32)
 
 # Portable state-transition tests use fake character memory; no Roblox needed.
 add_executable(movement_tests tests_movement.cpp)
@@ -28,3 +28,7 @@ if(MSVC)
 endif()
 add_custom_command(TARGET movement_tests POST_BUILD COMMAND $<TARGET_FILE:movement_tests>
  COMMENT "Checking movement restoration, focus loss and session replacement" VERBATIM)
+
+if(DEFINED ENV{GITHUB_RUN_NUMBER})
+ target_compile_definitions(pandora_lite PRIVATE PANDORA_BUILD_NUMBER=$ENV{GITHUB_RUN_NUMBER})
+endif()
