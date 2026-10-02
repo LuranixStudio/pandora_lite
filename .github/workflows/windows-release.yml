@@ -46,3 +46,26 @@ jobs:
             CLEAN_BUILD.md
           if-no-files-found: error
           retention-days: 30
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pandora-lite-windows-x64
+          path: package
+      - name: Publish verified update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: pandora-build-${{ github.run_number }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          package/build/Release/pandora_lite.exe package/release.txt
+          package/LICENSE.txt package/IMGUI_LICENSE.txt package/CLEAN_BUILD.md
+          --target "$RELEASE_COMMIT" --title "Pandora build ${{ github.run_number }}"
+          --notes "Windows x64 build. Movement checks, startup and updater replacement tests passed. Game behavior and executor compatibility are not certified."
+          --latest
