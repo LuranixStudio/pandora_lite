@@ -8,6 +8,7 @@ struct Settings {
  bool enabled=true,boxes=true,names=true,health=true,teammates=false;
  bool filled=false,tracers=false,distances=false,radar=false,crosshair=false,watermark=true;
  bool speed=false,jump_boost=false,auto_jump=false,fly=false;
+ int hop_interval=120,hop_duration=40;
  float walk_speed=32,jump_power=75,jump_height=12,fly_speed=40;
  bool aim=false,fov_circle=true,aim_line=true,sticky=true;
  int box_style=1,tracer_origin=2,aim_key=VK_RBUTTON,aim_part=0,profile=0,theme=0;
@@ -33,6 +34,7 @@ struct Settings {
   BOOL_FIELD(enabled);BOOL_FIELD(boxes);BOOL_FIELD(names);BOOL_FIELD(health);BOOL_FIELD(teammates);
   BOOL_FIELD(filled);BOOL_FIELD(tracers);BOOL_FIELD(distances);BOOL_FIELD(radar);BOOL_FIELD(crosshair);BOOL_FIELD(watermark);
   BOOL_FIELD(speed);BOOL_FIELD(jump_boost);BOOL_FIELD(auto_jump);BOOL_FIELD(fly);
+  NUM_FIELD(hop_interval,60,500);NUM_FIELD(hop_duration,15,120);
   NUM_FIELD(walk_speed,1,150);NUM_FIELD(jump_power,1,150);NUM_FIELD(jump_height,1,50);NUM_FIELD(fly_speed,1,150);
   BOOL_FIELD(aim);BOOL_FIELD(fov_circle);BOOL_FIELD(aim_line);BOOL_FIELD(sticky);
   NUM_FIELD(box_style,0,2);NUM_FIELD(tracer_origin,0,2);NUM_FIELD(aim_key,1,254);NUM_FIELD(aim_part,0,1);NUM_FIELD(theme,0,3);
@@ -172,7 +174,9 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  if(page==5){
   ImGui::Checkbox("Custom walk speed",&s.speed);ImGui::SliderFloat("Walk speed",&s.walk_speed,1,150,"%.0f studs/s");
   ImGui::Checkbox("Custom jump strength",&s.jump_boost);ImGui::SliderFloat("Jump power",&s.jump_power,1,150,"%.0f");ImGui::SliderFloat("Jump height",&s.jump_height,1,50,"%.1f studs");
-  ImGui::Checkbox("Auto-jump while Space is held",&s.auto_jump);
+  ImGui::Checkbox("Bunny-hop while Space is held",&s.auto_jump);
+  if(s.auto_jump){ImGui::SliderInt("Jump interval",&s.hop_interval,60,500,"%d ms");ImGui::SliderInt("Key press duration",&s.hop_duration,15,120,"%d ms");}
+  ImGui::TextWrapped("Bunny-hop sends ordinary Space key presses. Try 120 ms interval / 40 ms duration first. Games still enforce their own jump rules.");
   ImGui::Checkbox("Velocity flight",&s.fly);ImGui::SliderFloat("Flight speed",&s.fly_speed,1,150,"%.0f studs/s");
   ImGui::TextWrapped("Flight: WASD to move, Space up, Left Ctrl down. Close the menu to activate. Movement pauses when the menu opens or Roblox loses focus.");
   ImGui::TextWrapped("Local-client controls. Games may override these values or correct your position. Jump strength uses your character's current jump mode. Values are restored when possible on disable or exit.");

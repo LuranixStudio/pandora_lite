@@ -12,7 +12,7 @@ and launch `pandora_lite.exe`. INSERT toggles the menu; END exits.
 - Crosshair, FPS watermark, independent color pickers, four theme presets,
   live ESP preview, animated collapsible navigation, five profile slots.
 - Movement: walk speed, jump power/height (current character jump mode),
-  hold-Space auto-jump and camera-relative WASD velocity flight (Space up, Ctrl down).
+  hold-Space input bunny-hop and camera-relative WASD velocity flight (Space up, Ctrl down).
 - Automatic reconnect, client-version guard, settings validation and persistence.
 
 Aim assist and all movement controls start disabled. Enable it, close the menu and hold the chosen key
@@ -25,8 +25,11 @@ Settings: `%LOCALAPPDATA%\PandoraLite\settings.ini`; profiles `profile1.ini` thr
 retains the current values. No script executor, silent
 aim, anti-cheat bypass or driver is included.
 
-Movement requests write access only when enabled. Only local character properties
-and root velocity are changed; game scripts or server corrections may override them.
+Movement requests write access only when enabled. Bunny-hop uses timed ordinary Space key events and does not write jump flags.
+Its interval and press duration are configurable; it can run without a standard
+Humanoid. Release/focus/disable send key-up for any outstanding synthetic press.
+Flight disables hopping to preserve Space as the ascent control. Other movement
+controls change local character properties and root velocity; game scripts or server corrections may override them.
 Controls pause when Roblox loses focus or the menu opens. Speed/jump originals
 are restored on disable/exit when the character is unchanged and the last written
 value is still present. An abrupt termination cannot restore values. Flight uses
