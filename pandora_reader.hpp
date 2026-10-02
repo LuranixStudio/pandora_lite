@@ -27,13 +27,13 @@ struct PlayerSample {
 class Reader {
  HANDLE handle_{};
  DWORD pid_{};
- uintptr_t base_{}, dm_{}, ve_{}, players_{}, local_{};
+ uintptr_t base_{}, dm_{}, ve_{}, players_{}, local_{}, local_root_{};
  ULONGLONG next_attach_{}, next_cache_{};
  std::vector<PlayerSample> samples_;
 public:
  std::string status="Waiting for Roblox";
  ~Reader(){ close(); }
- void close(){ if(handle_) CloseHandle(handle_); handle_=nullptr; pid_=0; base_=dm_=ve_=players_=local_=0; samples_.clear(); }
+ void close(){ if(handle_) CloseHandle(handle_); handle_=nullptr; pid_=0; base_=dm_=ve_=players_=local_=local_root_=0; samples_.clear(); }
  static bool pointer(uintptr_t p){ return p>=0x10000 && p<0x0000800000000000ULL; }
  bool bytes(uintptr_t p, void* out, size_t n) const {
   SIZE_T got=0;
@@ -112,13 +112,14 @@ public:
   for(auto child:children(dm_)) if(class_name(child)=="Players" || name(child)=="Players"){players_=child;break;}
   if(!players_){samples_.clear();status="Players service unavailable; check offsets";return;}
   local_=read<uintptr_t>(players_+offsets::local_player);
+  local_root_=find(read<uintptr_t>(local_+offsets::model),"HumanoidRootPart");
   std::vector<PlayerSample> next;
   for(auto p:children(players_)){
    if(p==local_)continue;
    PlayerSample s{};s.address=p;s.character=read<uintptr_t>(p+offsets::model);s.team=read<uintptr_t>(p+offsets::team);
    if(!pointer(s.character))continue;
    s.name=string(p+offsets::display_name);if(s.name.empty())s.name=name(p);if(s.name.empty())s.name="Player";
-   s.head=find(s.character,"Head");s.root=find(s.character,"HumanoidRootPart");s.humanoid=find(s.character,"Humanoid");
+   for(auto part:children(s.character)){auto n=name(part);if(n=="Head")s.head=part;else if(n=="HumanoidRootPart")s.root=part;else if(n=="Humanoid")s.humanoid=part;}
    if(pointer(s.head)&&pointer(s.root))next.push_back(std::move(s));
    if(next.size()>=512)break;
   }
@@ -133,6 +134,12 @@ public:
   auto prim=read<uintptr_t>(part+offsets::primitive);
   return pointer(prim)?read<Vec3>(prim+offsets::position):Vec3{};
  }
+ bool try_position(uintptr_t part,Vec3& out) const {
+  if(!pointer(part))return false;
+  auto prim=read<uintptr_t>(part+offsets::primitive);
+  return pointer(prim)&&bytes(prim+offsets::position,&out,sizeof out)&&std::isfinite(out.x)&&std::isfinite(out.y)&&std::isfinite(out.z);
+ }
+ bool local_position(Vec3& out) const {return try_position(local_root_,out);}
  const auto& samples() const {return samples_;}
  uintptr_t local_team() const {return pointer(local_)?read<uintptr_t>(local_+offsets::team):0;}
  std::array<float,16> matrix()const{return pointer(ve_)?read<std::array<float,16>>(ve_+offsets::matrix):std::array<float,16>{};}
