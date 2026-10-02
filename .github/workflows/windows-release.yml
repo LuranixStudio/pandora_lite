@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: pandora-windows-release
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: windows-2022
@@ -23,14 +26,23 @@ jobs:
           $app.Refresh()
           if ($app.HasExited) { throw "Application exited during startup: $($app.ExitCode)" }
           Stop-Process -Id $app.Id
-          Get-FileHash .\build\Release\pandora_lite.exe -Algorithm SHA256 | Format-List
+      - name: Verify updater replacement and tamper rejection
+        shell: pwsh
+        run: .\test_update.ps1
+      - name: Create update manifest
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash .\build\Release\pandora_lite.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$env:GITHUB_RUN_NUMBER`n$hash" | Set-Content -Encoding ascii release.txt
       - name: Package executable
         uses: actions/upload-artifact@v4
         with:
           name: pandora-lite-windows-x64
           path: |
             build/Release/pandora_lite.exe
+            release.txt
             LICENSE.txt
+            IMGUI_LICENSE.txt
             CLEAN_BUILD.md
           if-no-files-found: error
           retention-days: 30
