@@ -1,0 +1,36 @@
+name: Windows Release
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure x64 Release
+        run: cmake -S . -B build -A x64
+      - name: Compile
+        run: cmake --build build --config Release --parallel
+      - name: Verify executable starts
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath .\build\Release\pandora_lite.exe -PassThru
+          Start-Sleep -Seconds 5
+          $app.Refresh()
+          if ($app.HasExited) { throw "Application exited during startup: $($app.ExitCode)" }
+          Stop-Process -Id $app.Id
+          Get-FileHash .\build\Release\pandora_lite.exe -Algorithm SHA256 | Format-List
+      - name: Package executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: pandora-lite-windows-x64
+          path: |
+            build/Release/pandora_lite.exe
+            LICENSE.txt
+            CLEAN_BUILD.md
+          if-no-files-found: error
+          retention-days: 30
