@@ -178,7 +178,7 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
   if(s.auto_jump){ImGui::SliderInt("Jump interval",&s.hop_interval,60,500,"%d ms");ImGui::SliderInt("Key press duration",&s.hop_duration,15,120,"%d ms");}
   ImGui::TextWrapped("Bunny-hop sends ordinary Space key presses. Try 120 ms interval / 40 ms duration first. Games still enforce their own jump rules.");
   ImGui::Checkbox("Velocity flight",&s.fly);ImGui::SliderFloat("Flight speed",&s.fly_speed,1,150,"%.0f studs/s");
-  ImGui::TextWrapped("Flight: WASD to move, Space up, Left Ctrl down. Close the menu to activate. Movement pauses when the menu opens or Roblox loses focus.");
+  ImGui::TextWrapped("Flight uses physical WASD positions (QZSD on AZERTY), following the active keyboard layout. Space up, Left Ctrl down. Close the menu to activate. Movement pauses when the menu opens or Roblox loses focus.");
   ImGui::TextWrapped("Local-client controls. Games may override these values or correct your position. Jump strength uses your character's current jump mode. Values are restored when possible on disable or exit.");
   ImGui::TextWrapped("%s",movement_status.c_str());
  }

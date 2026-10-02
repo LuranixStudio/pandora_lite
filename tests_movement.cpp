@@ -10,6 +10,11 @@
 using ULONGLONG=unsigned long long;
 constexpr int VK_SPACE=32,VK_LCONTROL=162;
 static bool space=false;
+constexpr unsigned MAPVK_VSC_TO_VK_EX=3;
+static int GetForegroundWindow(){return 0;}
+static unsigned GetWindowThreadProcessId(int,void*){return 0;}
+static int GetKeyboardLayout(unsigned){return 0;}
+static unsigned MapVirtualKeyExW(unsigned scan,unsigned,int){return scan+256;}
 static ULONGLONG GetTickCount64(){static ULONGLONG now=1000;return now+=20;}
 static int GetAsyncKeyState(int key){return key==VK_SPACE&&space?0x8000:0;}
 struct Vec3{float x{},y{},z{};};

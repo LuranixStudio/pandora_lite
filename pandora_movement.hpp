@@ -67,7 +67,10 @@ public:
    if((right.x==0&&right.z==0)||(forward.x==0&&forward.z==0)){stop_flight(r);ok=false;}
    else {
     auto held=[](int key){return (GetAsyncKeyState(key)&0x8000)?1.f:0.f;};
-    float side=held('D')-held('A'),front=held('W')-held('S'),vertical=held(VK_SPACE)-held(VK_LCONTROL);
+    // Translate physical movement positions using the foreground game's layout.
+    auto layout=GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(),nullptr));
+    auto physical=[&](unsigned scan){auto key=MapVirtualKeyExW(scan,MAPVK_VSC_TO_VK_EX,layout);return key?held(static_cast<int>(key)):0.f;};
+    float side=physical(0x20)-physical(0x1e),front=physical(0x11)-physical(0x1f),vertical=held(VK_SPACE)-held(VK_LCONTROL);
     Vec3 direction=normalized({right.x*side+forward.x*front,vertical,right.z*side+forward.z*front});
     Vec3 velocity{direction.x*s.fly_speed,direction.y*s.fly_speed,direction.z*s.fly_speed};
     primitive_=r.local_primitive();if(Reader::pointer(primitive_)&&r.write(primitive_+movement_offsets::velocity,velocity)){flight_applied_=true;last_velocity_=velocity;}else ok=false;

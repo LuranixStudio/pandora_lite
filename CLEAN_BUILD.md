@@ -81,3 +81,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ```
+
+Flight reads physical movement key positions using the foreground keyboard layout (WASD on QWERTY, QZSD on AZERTY). Layout changes are picked up while running.
