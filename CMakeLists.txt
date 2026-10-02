@@ -18,3 +18,13 @@ if(MSVC)
  set_property(TARGET pandora_lite PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 target_link_libraries(pandora_lite PRIVATE d3d11 dxgi dwmapi user32 gdi32)
+
+# Portable state-transition tests use fake character memory; no Roblox needed.
+add_executable(movement_tests tests_movement.cpp)
+target_compile_features(movement_tests PRIVATE cxx_std_20)
+if(MSVC)
+ target_compile_options(movement_tests PRIVATE /W4 /EHsc /utf-8)
+ set_property(TARGET movement_tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+add_custom_command(TARGET movement_tests POST_BUILD COMMAND $<TARGET_FILE:movement_tests>
+ COMMENT "Checking movement restoration, focus loss and session replacement" VERBATIM)

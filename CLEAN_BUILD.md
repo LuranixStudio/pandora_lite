@@ -11,17 +11,26 @@ and launch `pandora_lite.exe`. INSERT toggles the menu; END exits.
 - North-up X/Z radar: character-centered, configurable size, range and position.
 - Crosshair, FPS watermark, independent color pickers, four theme presets,
   live ESP preview, animated collapsible navigation, five profile slots.
+- Movement: walk speed, jump power/height (current character jump mode),
+  hold-Space auto-jump and camera-relative WASD velocity flight (Space up, Ctrl down).
 - Automatic reconnect, client-version guard, settings validation and persistence.
 
-Aim assist starts disabled. Enable it, close the menu and hold the chosen key
+Aim assist and all movement controls start disabled. Enable it, close the menu and hold the chosen key
 while Roblox is focused. Mouse gain must be tuned to game sensitivity. It does
 not test line of sight. Distance units are Roblox studs. Range filtering needs
 an available local character. Custom rigs may need a separate adapter.
 
 Settings: `%LOCALAPPDATA%\PandoraLite\settings.ini`; profiles `profile1.ini` through
-`profile5.ini`. Loading a profile leaves aim assist disabled. A missing profile
-retains the current values. No script executor, movement modifications, silent
+`profile5.ini`. Loading a profile leaves aim assist and movement disabled. A missing profile
+retains the current values. No script executor, silent
 aim, anti-cheat bypass or driver is included.
+
+Movement requests write access only when enabled. Only local character properties
+and root velocity are changed; game scripts or server corrections may override them.
+Controls pause when Roblox loses focus or the menu opens. Speed/jump originals
+are restored on disable/exit when the character is unchanged and the last written
+value is still present. An abrupt termination cannot restore values. Flight uses
+the current view matrix for horizontal controls and may need game-specific testing.
 
 ## Interface attribution
 Michael Conors' 1011 custom navigation and embedded font arrays, supplied via

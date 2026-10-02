@@ -3,9 +3,12 @@
 #include <array>
 #include <type_traits>
 // Original interface and features for Pandora; no third-party cheat binaries.
+inline std::string movement_status="Movement disabled";
 struct Settings {
  bool enabled=true,boxes=true,names=true,health=true,teammates=false;
  bool filled=false,tracers=false,distances=false,radar=false,crosshair=false,watermark=true;
+ bool speed=false,jump_boost=false,auto_jump=false,fly=false;
+ float walk_speed=32,jump_power=75,jump_height=12,fly_speed=40;
  bool aim=false,fov_circle=true,aim_line=true,sticky=true;
  int box_style=1,tracer_origin=2,aim_key=VK_RBUTTON,aim_part=0,profile=0,theme=0;
  float color[4]={0.55f,0.78f,0.48f,1},text_color[4]={0.94f,0.95f,0.94f,1};
@@ -29,6 +32,8 @@ struct Settings {
 #define NUM_FIELD(v,l,h) number(L## #v,v,l,h)
   BOOL_FIELD(enabled);BOOL_FIELD(boxes);BOOL_FIELD(names);BOOL_FIELD(health);BOOL_FIELD(teammates);
   BOOL_FIELD(filled);BOOL_FIELD(tracers);BOOL_FIELD(distances);BOOL_FIELD(radar);BOOL_FIELD(crosshair);BOOL_FIELD(watermark);
+  BOOL_FIELD(speed);BOOL_FIELD(jump_boost);BOOL_FIELD(auto_jump);BOOL_FIELD(fly);
+  NUM_FIELD(walk_speed,1,150);NUM_FIELD(jump_power,1,150);NUM_FIELD(jump_height,1,50);NUM_FIELD(fly_speed,1,150);
   BOOL_FIELD(aim);BOOL_FIELD(fov_circle);BOOL_FIELD(aim_line);BOOL_FIELD(sticky);
   NUM_FIELD(box_style,0,2);NUM_FIELD(tracer_origin,0,2);NUM_FIELD(aim_key,1,254);NUM_FIELD(aim_part,0,1);NUM_FIELD(theme,0,3);
   NUM_FIELD(thickness,1,4);NUM_FIELD(max_distance,25,5000);NUM_FIELD(fov,10,800);NUM_FIELD(response,10,500);NUM_FIELD(gain,0.1f,3);
@@ -115,16 +120,16 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  st.WindowRounding=7;st.ChildRounding=5;st.FrameRounding=3;st.ItemSpacing={10,9};st.WindowPadding={18,16};
  ImGui::SetNextWindowPos({24,24},ImGuiCond_Once);ImGui::SetNextWindowSize({740,550},ImGuiCond_FirstUseEver);
  ImGui::SetNextWindowSizeConstraints({660,480},{1100,850});
- ImGui::Begin("Pandora / external",nullptr,ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
+ ImGui::Begin("Pandora / external",nullptr,ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
  if(menu1011::title)ImGui::PushFont(menu1011::title);ImGui::TextColored(a,"PANDORA");if(menu1011::title)ImGui::PopFont();ImGui::SameLine();ImGui::TextDisabled("EXTERNAL / CUSTOM EDITION");ImGui::SameLine(ImGui::GetWindowWidth()-175);ImGui::TextDisabled("%.0f fps",fps);
- ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Connection"};
+ ImGui::Separator();static int page=0;const char* tabs[]={"Aim assist","Visuals","Radar","Appearance","Profiles","Movement","Connection"};
  static bool expanded=true;static float expansion=1;
  expansion+=(float(expanded)-expansion)*(1-std::exp(-ImGui::GetIO().DeltaTime*14));
  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{0,10});
  ImGui::BeginChild("sidebar",{50+105*expansion,-28},ImGuiChildFlags_Borders);ImGui::PopStyleVar();
  if(ImGui::SmallButton(expanded?"<":" >"))expanded=!expanded;
- ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","A"};
- for(int i=0;i<6;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
+ ImGui::Spacing();const char* symbols[]={"A","B","C","D","E","C","A"};
+ for(int i=0;i<7;++i){if(menu1011::tab(symbols[i],tabs[i],page==i,expansion,rgba(s.accent)))page=i;ImGui::Dummy({0,6});}
  ImGui::Spacing();if(expansion>.75f){ImGui::TextColored(r.status=="Connected"?a:ImVec4{1,.7f,.3f,1},"%s",r.status=="Connected"?"CONNECTED":"WAITING");ImGui::TextDisabled("%zu players",r.samples().size());}
  ImGui::EndChild();ImGui::SameLine();ImGui::BeginChild("content",{0,-28},ImGuiChildFlags_Borders);
  ImGui::TextColored(a,"%s",tabs[page]);ImGui::Separator();
@@ -160,15 +165,24 @@ inline void draw_menu(Reader& r,Settings& s,float fps,bool& active){
  if(page==4){
   ImGui::Combo("Profile slot",&s.profile,"Profile 1\0Profile 2\0Profile 3\0Profile 4\0Profile 5\0");
   static std::string notice;
-  if(ImGui::Button("Save profile")){s.saved_profile(true);notice="Profile saved";}ImGui::SameLine();if(ImGui::Button("Load profile")){s.saved_profile(false);s.aim=false;notice="Profile loaded; aim assist left off";}
+  if(ImGui::Button("Save profile")){s.saved_profile(true);notice="Profile saved";}ImGui::SameLine();if(ImGui::Button("Load profile")){s.saved_profile(false);s.aim=s.speed=s.jump_boost=s.auto_jump=s.fly=false;notice="Profile loaded; active controls left off";}
   if(ImGui::Button("Save current settings")){s.save();notice="Current settings saved";}ImGui::SameLine();if(ImGui::Button("Reset defaults")){s.reset();notice="Defaults restored";}
-  ImGui::TextWrapped("%s",notice.c_str());ImGui::TextWrapped("Five local profiles. Settings also save on exit. Aim assist starts disabled each launch; enable it explicitly when ready.");
+  ImGui::TextWrapped("%s",notice.c_str());ImGui::TextWrapped("Five local profiles. Settings also save on exit. Aim assist and movement start disabled each launch; enable them when ready.");
  }
  if(page==5){
+  ImGui::Checkbox("Custom walk speed",&s.speed);ImGui::SliderFloat("Walk speed",&s.walk_speed,1,150,"%.0f studs/s");
+  ImGui::Checkbox("Custom jump strength",&s.jump_boost);ImGui::SliderFloat("Jump power",&s.jump_power,1,150,"%.0f");ImGui::SliderFloat("Jump height",&s.jump_height,1,50,"%.1f studs");
+  ImGui::Checkbox("Auto-jump while Space is held",&s.auto_jump);
+  ImGui::Checkbox("Velocity flight",&s.fly);ImGui::SliderFloat("Flight speed",&s.fly_speed,1,150,"%.0f studs/s");
+  ImGui::TextWrapped("Flight: WASD to move, Space up, Left Ctrl down. Close the menu to activate. Movement pauses when the menu opens or Roblox loses focus.");
+  ImGui::TextWrapped("Local-client controls. Games may override these values or correct your position. Jump strength uses your character's current jump mode. Values are restored when possible on disable or exit.");
+  ImGui::TextWrapped("%s",movement_status.c_str());
+ }
+ if(page==6){
   ImGui::TextWrapped("%s",r.status.c_str());ImGui::TextWrapped("Offsets: version-02c37bc51a384b8f");
   ImGui::TextWrapped("Standard Head / HumanoidRootPart characters. Custom game rigs need an adapter. Radar and distance require your spawned character.");
   if(ImGui::Button("Reconnect"))r.close();ImGui::Spacing();
-  ImGui::TextWrapped("This build includes external visuals and mouse aim assist. Movement modification, silent aim, visibility raycasts and script execution are not implemented.");
+  ImGui::TextWrapped("External visuals, mouse aim assist and local movement controls. Silent aim, visibility raycasts and script execution are not implemented.");
   ImGui::TextWrapped("Michael Conors 1011 navigation and embedded fonts adapted to Dear ImGui 1.91 / DirectX 11. Original feature panels for Pandora.");
  }
  ImGui::EndChild();ImGui::Separator();ImGui::TextDisabled("INSERT / menu    END / exit");ImGui::SameLine();if(ImGui::SmallButton("Quit"))active=false;ImGui::End();
